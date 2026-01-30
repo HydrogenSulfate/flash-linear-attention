@@ -15,7 +15,7 @@ from fla.ops.utils.pooling import mean_pooling
 from fla.utils import autocast_custom_bwd, autocast_custom_fwd, autotune_cache_kwargs, check_shared_mem, contiguous
 
 try:
-    from flash_attn import flash_attn_func, flash_attn_varlen_func
+    from flash_attn_interface import flash_attn_func, flash_attn_varlen_func
 except ImportError:
     warnings.warn(
         "Flash Attention is not installed. Please install it via `pip install flash-attn --no-build-isolation`",

@@ -1,7 +1,7 @@
 
 import torch
 import triton
-from flash_attn import flash_attn_func
+from flash_attn_interface import flash_attn_func
 
 from fla.ops.nsa import parallel_nsa
 

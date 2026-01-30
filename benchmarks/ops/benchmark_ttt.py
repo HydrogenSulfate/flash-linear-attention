@@ -10,7 +10,7 @@ from fla.ops.gla import chunk_gla
 from fla.ops.ttt import chunk_ttt_linear, fused_chunk_ttt_linear
 from fla.utils import device
 
-# from flash_attn import flash_attn_func
+# from flash_attn_interface import flash_attn_func
 
 
 def time_fwd(func, *args, **kwargs):

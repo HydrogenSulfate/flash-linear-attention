@@ -3,7 +3,7 @@ import os
 
 import torch
 import triton
-from flash_attn import flash_attn_func
+from flash_attn_interface import flash_attn_func
 
 from fla.ops.retention import chunk_retention, parallel_retention
 
@@ -32,7 +32,7 @@ def benchmark(T, provider):
     from fla.utils import device
     dtype = torch.bfloat16
     requires_grad = True
-    B, H, D = 4, 8, 256
+    B, H, D = 4, 8, 32
     os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
     q = torch.randn(B, T, H, D, device=device, requires_grad=requires_grad, dtype=dtype)

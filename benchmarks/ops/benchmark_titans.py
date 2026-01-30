@@ -7,7 +7,7 @@ from torch.nn import functional as F
 
 from fla.ops.titans.naive import chunk_titans_linear_ref
 
-# from flash_attn import flash_attn_func
+# from flash_attn_interface import flash_attn_func
 
 
 def time_fwd(func, *args, **kwargs):

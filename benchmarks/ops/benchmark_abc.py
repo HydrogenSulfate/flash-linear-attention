@@ -8,7 +8,7 @@ from fla.ops.gla import chunk_gla
 from fla.ops.retention import chunk_retention
 
 try:
-    from flash_attn import flash_attn_func
+    from flash_attn_interface import flash_attn_func
     HAS_FLASH = True
 except BaseException:
     HAS_FLASH = False

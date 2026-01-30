@@ -2,21 +2,50 @@
 MODEL='/root/paddlejob/workspace/env_run/output/hesensen/flame/exp/gdn-1B-100B/batch16.seqlen4096.warmup2048.update1.steps204800.lr4e-4'
 
 # 单卡测试
-CUDA_VISIBLE_DEVICES=0 \
-  python -m evals.harness --model hf  \
-    --model_args pretrained=$MODEL,trust_remote_code=True  \
-    --tasks wikitext,lambada_openai,piqa,hellaswag,winogrande,arc_easy,arc_challenge,boolq,copa,openbookqa,social_iqa,sciq \
-    --batch_size 128  \
-    --num_fewshot 0  \
-    --device cuda \
-    --trust_remote_code
+# CUDA_VISIBLE_DEVICES=0 \
+#   python -m evals.harness --model hf  \
+#     --model_args pretrained=$MODEL,trust_remote_code=True  \
+#     --tasks wikitext,lambada_openai,piqa,hellaswag,winogrande,arc_easy,arc_challenge,boolq,copa,openbookqa,social_iqa,sciq \
+#     --batch_size 128  \
+#     --num_fewshot 0  \
+#     --device cuda \
+#     --trust_remote_code
 
 # 多卡测试
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-  accelerate launch -m evals.harness --model hf  \
-    --model_args pretrained=$MODEL,dtype=bfloat16,trust_remote_code=True  \
-    --tasks wikitext,lambada_openai,piqa,hellaswag,winogrande,arc_easy,arc_challenge,boolq,copa,openbookqa,social_iqa,sciq \
-    --batch_size 128  \
-    --num_fewshot 0  \
-    --device cuda \
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+#   accelerate launch -m evals.harness --model hf  \
+#     --model_args pretrained=$MODEL,dtype=bfloat16,trust_remote_code=True  \
+#     --tasks wikitext,lambada_openai,piqa,hellaswag,winogrande,arc_easy,arc_challenge,boolq,copa,openbookqa,social_iqa,sciq \
+#     --batch_size 128  \
+#     --num_fewshot 0  \
+#     --device cuda \
+#     --trust_remote_code
+
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+#   accelerate launch -m evals.harness --model hf  \
+#     --model_args pretrained=$MODEL,dtype=bfloat16,trust_remote_code=True  \
+#     --tasks niah_single_1,niah_single_2,niah_single_3 \
+#     --metadata='{"max_seq_lengths":[1024,4096,8192]}' \
+#     --num_fewshot 0  \
+#     --device cuda \
+#     --batch_size 128  \
+#     --trust_remote_code
+
+# CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+#   accelerate launch -m evals.harness --model hf  \
+#     --model_args pretrained=$MODEL,dtype=bfloat16,trust_remote_code=True  \
+#     --tasks niah_single_1 \
+#     --metadata='{"max_seq_lengths":[1024,4096,8192]}' \
+#     --num_fewshot 0  \
+#     --device cuda \
+#     --batch_size 128  \
+#     --trust_remote_code
+
+CUDA_VISIBLE_DEVICES=0 \
+  python -m evals.harness \
+    --output_path ./lm_eval_output \
+    --tasks squadv2 \
+    --model_args pretrained=$MODEL,dtype=bfloat16,max_length=2048,trust_remote_code=True \
+    --metadata='{"max_seq_lengths":[2048]}' \
+    --batch_size 64 \
     --trust_remote_code

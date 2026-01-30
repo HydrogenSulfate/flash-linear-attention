@@ -11,7 +11,7 @@ from fla.ops.rwkv6 import chunk_rwkv6
 from fla.ops.rwkv7 import chunk_rwkv7
 
 try:
-    from flash_attn import flash_attn_func
+    from flash_attn_interface import flash_attn_func
     HAS_FLASH = True
 except BaseException:
     HAS_FLASH = False

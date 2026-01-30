@@ -9,7 +9,7 @@ from fla.ops.utils import prepare_lens
 from fla.utils import assert_close, check_shared_mem, device
 
 try:
-    from flash_attn import flash_attn_func, flash_attn_varlen_func
+    from flash_attn_interface import flash_attn_func, flash_attn_varlen_func
     HAS_FLASH = True
 except Exception:
     HAS_FLASH = False

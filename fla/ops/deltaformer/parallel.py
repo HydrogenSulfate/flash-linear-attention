@@ -10,7 +10,7 @@ import triton.language as tl
 from . import invcum
 
 try:
-    from flash_attn import flash_attn_func, flash_attn_varlen_func
+    from flash_attn_interface import flash_attn_func, flash_attn_varlen_func
 except ImportError:
     warnings.warn(
         "Flash Attention is not installed. Please install it via `pip install flash-attn --no-build-isolation`",
