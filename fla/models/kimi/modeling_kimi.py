@@ -28,6 +28,7 @@ from transformers.utils.deprecation import deprecate_kwarg
 # from transformers.generation import GenerationMixin
 from fla.models.utils import FLAGenerationMixin
 from fla.modules import FusedCrossEntropyLoss, FusedLinearCrossEntropyLoss
+from fla.modules.activations import sigmoid, swish
 from fla.modules.l2warp import l2_warp
 
 try:
@@ -187,6 +188,35 @@ class KimiRMSNorm(nn.Module):
 
     def reset_parameters(self):
         nn.init.ones_(self.weight)
+
+
+class KimiGatedRMSNorm(nn.Module):
+    def __init__(self, hidden_size, eps=1e-6, lora_rank: int = 16):
+        """
+        KimiRMSNorm is equivalent to T5LayerNorm
+        """
+        super().__init__()
+        self.weight = nn.Parameter(torch.ones(hidden_size))
+        self.variance_epsilon = eps
+        self.down = nn.Linear(hidden_size, lora_rank, bias=False)  # d->r
+        self.up = nn.Linear(lora_rank, lora_rank, bias=False)  # r->d
+        self.reset_parameters()
+
+    def forward(self, hidden_states):
+        input_dtype = hidden_states.dtype
+        hidden_states = hidden_states.to(torch.float32)
+        variance = hidden_states.pow(2).mean(-1, keepdim=True)
+        hidden_states = hidden_states * torch.rsqrt(variance + self.variance_epsilon)
+        y = self.weight * hidden_states.to(input_dtype)
+        y_g = sigmoid(self.up(swish(self.down(y))))
+        return y_g * y
+
+    def reset_parameters(self):
+        nn.init.ones_(self.weight)
+        nn.init.normal_(self.down.weight, mean=0.0, std=self.config.initializer_range)
+        nn.init.normal_(self.up.weight, mean=0.0, std=self.config.initializer_range)
+        nn.init.zeros_(self.down.bias)
+        nn.init.zeros_(self.up.bias)
 
 
 ALL_LAYERNORM_LAYERS.append(KimiRMSNorm)
@@ -354,29 +384,29 @@ class KimiMLAAttention(nn.Module):
             self.qk_nope_head_dim + self.v_head_dim,
         )
 
-        q_states = self.q_proj(hidden_states)
-        q_states = q_states.view(query_shape).transpose(1, 2)
+        q_states = self.q_proj(hidden_states)  # [B, L, H * D(rope+nope)]
+        q_states = q_states.view(query_shape).transpose(1, 2)  # [B, H, L, D(rope+nope)] <- [B, L, H*D(rope+nope)]
         q_pass, q_rot = torch.split(
             q_states, [self.qk_nope_head_dim, self.qk_rope_head_dim], dim=-1
-        )
+        )  # [B, L, H, D(nope)], [B, L, H, D(rope)]
 
-        compressed_kv = self.kv_a_proj_with_mqa(hidden_states)
+        compressed_kv = self.kv_a_proj_with_mqa(hidden_states)  # [B, L, D(kv_lora+rope)]
         k_pass, k_rot = torch.split(
             compressed_kv, [self.kv_lora_rank, self.qk_rope_head_dim], dim=-1
-        )
+        )  # [B, L, D(kv_lora)], [B, L, D(rope)]
 
         k_pass = (
             self.kv_b_proj(self.kv_a_layernorm(k_pass)).view(key_shape).transpose(1, 2)
-        )
+        )  # [B, H, L, nope+v] <- [B, L, H*D(nope+v)] <- [B, L, D(kv_lora)]
         k_pass, value_states = torch.split(
             k_pass, [self.qk_nope_head_dim, self.v_head_dim], dim=-1
-        )
+        )  # [B, H, L, nope],  # [B, H, L, v]
 
-        k_rot = k_rot.view(batch_size, 1, seq_length, self.qk_rope_head_dim)
-        k_rot = k_rot.expand(*k_pass.shape[:-1], -1)
+        k_rot = k_rot.view(batch_size, 1, seq_length, self.qk_rope_head_dim)  # [B, 1, L, D(rope)]
+        k_rot = k_rot.expand(*k_pass.shape[:-1], -1)  # [B, H, L, D(rope)] <- [B, 1, L, D(rope)]
 
-        query_states = torch.cat((q_pass, q_rot), dim=-1)
-        key_states = torch.cat((k_pass, k_rot), dim=-1)
+        query_states = torch.cat((q_pass, q_rot), dim=-1)  # [B, L, H, D(nope+rope)]
+        key_states = torch.cat((k_pass, k_rot), dim=-1)  # [B, H, L, D(nope+rope)]
 
         if past_key_values is not None:
             key_states, value_states = past_key_values.update(

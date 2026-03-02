@@ -16,6 +16,7 @@ from fla.models.gsa import GSAConfig, GSAForCausalLM, GSAModel
 from fla.models.hgrn import HGRNConfig, HGRNForCausalLM, HGRNModel
 from fla.models.hgrn2 import HGRN2Config, HGRN2ForCausalLM, HGRN2Model
 from fla.models.kda import KDAConfig, KDAForCausalLM, KDAModel
+from fla.models.kimi import KimiLinearConfig, KimiLinearForCausalLM, KimiLinearModel
 from fla.models.lightnet import LightNetConfig, LightNetForCausalLM, LightNetModel
 from fla.models.linear_attn import LinearAttentionConfig, LinearAttentionForCausalLM, LinearAttentionModel
 from fla.models.log_linear_mamba2 import LogLinearMamba2Config, LogLinearMamba2ForCausalLM, LogLinearMamba2Model
@@ -26,6 +27,7 @@ from fla.models.mla import MLAConfig, MLAForCausalLM, MLAModel
 from fla.models.mom import MomConfig, MomForCausalLM, MomModel
 from fla.models.nsa import NSAConfig, NSAForCausalLM, NSAModel
 from fla.models.path_attn import PaTHAttentionConfig, PaTHAttentionForCausalLM, PaTHAttentionModel
+from fla.models.qwen3_5 import Qwen3_5ForCausalLM, Qwen3_5TextConfig, Qwen3_5TextModel
 from fla.models.retnet import RetNetConfig, RetNetForCausalLM, RetNetModel
 from fla.models.rodimus import RodimusConfig, RodimusForCausalLM, RodimusModel
 from fla.models.rwkv6 import RWKV6Config, RWKV6ForCausalLM, RWKV6Model
@@ -73,6 +75,9 @@ __all__ = [
     'KDAConfig',
     'KDAForCausalLM',
     'KDAModel',
+    'KimiLinearConfig',
+    'KimiLinearForCausalLM',
+    'KimiLinearModel',
     'LightNetConfig',
     'LightNetForCausalLM',
     'LightNetModel',
@@ -103,6 +108,9 @@ __all__ = [
     'PaTHAttentionConfig',
     'PaTHAttentionForCausalLM',
     'PaTHAttentionModel',
+    'Qwen3_5ForCausalLM',
+    'Qwen3_5TextConfig',
+    'Qwen3_5TextModel',
     'RWKV6Config',
     'RWKV6ForCausalLM',
     'RWKV6Model',
