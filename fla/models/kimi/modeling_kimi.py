@@ -1120,12 +1120,14 @@ class KimiLinearModel(KimiPreTrainedModel):
     ):
         if isinstance(module, KimiDeltaAttention) and next(module.parameters()).device.type != "meta":
             with torch.no_grad():
-                module.A_log.copy_(nn.init.uniform_(module.A_log, a=1, b=16).log())
-                dt = torch.exp(
-                    nn.init.uniform_(module.dt_bias) * (math.log(0.1) - math.log(0.001)) + math.log(0.001),
-                ).clamp(min=1e-4)
-                inv_dt = dt + torch.log(-torch.expm1(-dt))
-                module.dt_bias.copy_(inv_dt)
+                if not getattr(module.A_log, '_is_hf_initialized', False):
+                    module.A_log.copy_(nn.init.uniform_(module.A_log, a=1, b=16).log())
+                if not getattr(module.dt_bias, '_is_hf_initialized', False):
+                    dt = torch.exp(
+                        nn.init.uniform_(module.dt_bias) * (math.log(0.1) - math.log(0.001)) + math.log(0.001),
+                    ).clamp(min=1e-4)
+                    inv_dt = dt + torch.log(-torch.expm1(-dt))
+                    module.dt_bias.copy_(inv_dt)
                 module.dt_bias._is_hf_initialized = True
         if isinstance(module, (nn.Linear, nn.Conv1d)):
             # Slightly different from the TF version which uses truncated_normal for initialization
@@ -1166,7 +1168,13 @@ class KimiLinearModel(KimiPreTrainedModel):
 
 
 class KimiLinearForCausalLM(KimiPreTrainedModel, FLAGenerationMixin):
-    _tied_weights_keys = ["lm_head.weight"]
+    # _tied_weights_keys = ["lm_head.weight"]
+    @property
+    def _tied_weights(self):
+        tied = {}
+        if hasattr(self, "lm_head") and hasattr(self.lm_head, "weight"):
+            tied["lm_head.weight"] = self.lm_head.weight
+        return tied
 
     def __init__(self, config: KimiLinearConfig):
         super().__init__(config)
