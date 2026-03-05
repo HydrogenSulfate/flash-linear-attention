@@ -1,3 +1,4 @@
+import fla
 import argparse
 
 import torch
