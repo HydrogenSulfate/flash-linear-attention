@@ -93,6 +93,7 @@ def load_model_and_tokenizer(model_path: str, dtype: torch.dtype, device: torch.
         torch_dtype=dtype,
         trust_remote_code=True,
         device_map=None,   # 手动管理设备，保证显存统计准确
+        attn_implementation="flash_attention_3",
     )
     model = model.to(device)
     return model, tokenizer
@@ -231,18 +232,24 @@ def bench_inference_single(
         # ── 正式计时 ──────────────────────────────────────────────────
         ttft_ms_list = []
         tps_list = []
-        reset_peak(device)
+        prefill_peak_list = []
+        decode_peak_list = []
 
         for _ in range(measure_runs):
-            # TTFT: 单次 prefill forward
+            # TTFT + prefill 峰值显存
+            clear_cache()
+            reset_peak(device)
             torch.cuda.synchronize(device)
             t0 = time.perf_counter()
             with torch.inference_mode():
                 _ = model(input_ids=input_ids, attention_mask=attention_mask)
             torch.cuda.synchronize(device)
             ttft_ms_list.append((time.perf_counter() - t0) * 1000)
+            prefill_peak_list.append(peak_gib(device))
 
-            # 完整生成: prefill + decode
+            # 完整生成: prefill + decode，decode 峰值 = generate 峰值（含 KV cache）
+            clear_cache()
+            reset_peak(device)
             torch.cuda.synchronize(device)
             t1 = time.perf_counter()
             with torch.inference_mode():
@@ -252,22 +259,22 @@ def bench_inference_single(
                                      do_sample=False, use_cache=True)
             torch.cuda.synchronize(device)
             elapsed = time.perf_counter() - t1
+            decode_peak_list.append(peak_gib(device))
 
             new_tokens = (out.shape[1] - prompt_len) * batch_size
             tps_list.append(new_tokens / elapsed if elapsed > 0 else 0.0)
-
-        peak = peak_gib(device)
 
         def _avg(lst):
             return round(sum(lst) / len(lst), 3)
 
         result.update({
             "status": "ok",
-            "ttft_ms":                   _avg(ttft_ms_list),
-            "ttft_ms_min":               round(min(ttft_ms_list), 3),
-            "ttft_ms_max":               round(max(ttft_ms_list), 3),
-            "throughput_tokens_per_sec": round(_avg(tps_list), 2),
-            "peak_memory_gib":           round(peak, 3),
+            "ttft_ms":                        _avg(ttft_ms_list),
+            "ttft_ms_min":                    round(min(ttft_ms_list), 3),
+            "ttft_ms_max":                    round(max(ttft_ms_list), 3),
+            "throughput_tokens_per_sec":      round(_avg(tps_list), 2),
+            "prefill_peak_memory_gib":        _avg(prefill_peak_list),
+            "decode_peak_memory_gib":         _avg(decode_peak_list),
         })
 
     except torch.cuda.OutOfMemoryError:
@@ -350,16 +357,17 @@ def print_inference_summary(infer_results: list):
     sep()
     print(f"  {'bs':<5} {'plen':<7} {'glen':<6} "
           f"{'TTFT avg(ms)':<14} {'min':<9} {'max':<9} "
-          f"{'吞吐(tok/s)':<14} {'峰值显存(GiB)':<16} {'状态'}")
-    print("  " + "─" * 90)
+          f"{'吞吐(tok/s)':<14} {'prefill峰值显存(GiB)':<22} {'decode峰值显存(GiB)':<22} {'状态'}")
+    print("  " + "─" * 110)
     for r in infer_results:
         if r["status"] == "ok":
             print(f"  {r['batch_size']:<5} {r['prompt_len']:<7} {r['gen_len']:<6} "
                   f"{r['ttft_ms']:<14.1f} {r['ttft_ms_min']:<9.1f} {r['ttft_ms_max']:<9.1f} "
-                  f"{r['throughput_tokens_per_sec']:<14.1f} {r['peak_memory_gib']:<16.3f} ok")
+                  f"{r['throughput_tokens_per_sec']:<14.1f} "
+                  f"{r['prefill_peak_memory_gib']:<22.3f} {r['decode_peak_memory_gib']:<22.3f} ok")
         else:
             print(f"  {r['batch_size']:<5} {r['prompt_len']:<7} {r['gen_len']:<6} "
-                  f"{'—':<14} {'—':<9} {'—':<9} {'—':<14} {'—':<16} {r['status']}")
+                  f"{'—':<14} {'—':<9} {'—':<9} {'—':<14} {'—':<22} {'—':<22} {r['status']}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -383,9 +391,26 @@ def plot_benchmarks(json_paths: list[str], out_dir: str = ".") -> None:
     try:
         import matplotlib
         matplotlib.use("Agg")
+        import matplotlib.font_manager as fm
         import matplotlib.pyplot as plt
         import matplotlib.ticker as ticker
         import numpy as np
+        # 设置中文字体（按优先级查找）
+        candidate_fonts = [
+            "Noto Sans CJK SC",
+            "Noto Sans CJK",
+            "SimHei",
+            "Microsoft YaHei",
+            "WenQuanYi Micro Hei"
+        ]
+
+        for font in candidate_fonts:
+            if any(font in f.name for f in fm.fontManager.ttflist):
+                plt.rcParams["font.family"] = font
+                break
+
+        # 解决负号显示问题
+        plt.rcParams["axes.unicode_minus"] = False
     except ImportError:
         print("[ERROR] 绘图需要 matplotlib 和 numpy，请先安装：pip install matplotlib numpy")
         return
@@ -496,9 +521,9 @@ def plot_benchmarks(json_paths: list[str], out_dir: str = ".") -> None:
         return None  # OOM 或缺失
 
     infer_specs = [
-        ("ttft_ms",                   "TTFT 对比（Prefill 延迟）",         "TTFT avg (ms)",      "infer_ttft.png"),
-        ("throughput_tokens_per_sec", "推理吞吐量对比",                    "吞吐量 (tokens/sec)", "infer_throughput.png"),
-        ("peak_memory_gib",           "推理峰值显存对比",                  "峰值显存 (GiB)",      "infer_memory.png"),
+        ("ttft_ms", "TTFT Comparison", "TTFT avg (ms)", "infer_ttft.png"),
+        ("throughput_tokens_per_sec", "Throughput Comparison", "Throughput (tokens/sec)", "infer_throughput.png"),
+        ("peak_memory_gib", "Peak Memory Comparison", "Peak Memory (GiB)", "infer_memory.png"),
     ]
 
     if all_combos:

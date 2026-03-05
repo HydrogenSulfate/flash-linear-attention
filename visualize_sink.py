@@ -25,19 +25,20 @@
     norm_weight_rescaling.png
 """
 
-from fla.models.qwen3_5.modeling_qwen3_5 import Qwen3_5Attention
-from fla.models.qwen3_5 import Qwen3_5ForCausalLM
-from transformers import AutoTokenizer
-from torch import nn
-from scipy.stats import spearmanr
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 import argparse
 import os
 
 import matplotlib
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from scipy.stats import spearmanr
+from torch import nn
+from transformers import AutoTokenizer
+
+from fla.models.qwen3_5 import Qwen3_5ForCausalLM
+from fla.models.qwen3_5.modeling_qwen3_5 import Qwen3_5Attention
 
 matplotlib.use("Agg")
 
@@ -141,55 +142,30 @@ def load_model_and_register_hooks(model_path: str):
 # ================================================================== #
 
 SAMPLE_TEXT = """The first thing people often misunderstand about complexity is that it rarely announces itself with noise. More often, it emerges quietly, through the accumulation of small decisions that appear harmless in isolation but become deeply influential when composed together. A single assumption, left unexamined, forms the seed of a system; repeated often enough, that system begins to feel natural, inevitable, and even necessary. Yet nothing about it was inevitable. It was assembled, piece by piece, by individuals acting within constraints they only partially understood.
-
 Consider how any structured environment evolves. At the beginning there is openness, a wide field of possible actions. Early participants improvise. They solve immediate problems using whatever tools are available, guided more by intuition than by doctrine. Their solutions are pragmatic rather than elegant, local rather than global. However, each solution leaves a trace. That trace becomes a precedent, and precedent gradually transforms into expectation. What was once an improvisation becomes a rule.
-
 Over time, rules interact. Interactions create patterns. Patterns produce feedback. Feedback stabilizes some behaviors while suppressing others. Eventually, the environment acquires a form of memory—not a conscious memory, but a structural one. It “remembers” through reinforcement. Paths that are used frequently become easier to traverse; paths that are neglected disappear. In this way, history reshapes possibility.
-
 This phenomenon is not limited to institutions or technologies. It also characterizes intellectual work. When a researcher approaches a difficult question, the first framework they adopt is rarely perfect. It is simply the one that makes the problem tractable. Yet once the framework is chosen, it begins to guide perception itself. Certain variables appear important because the framework can measure them. Others fade into the background because they resist quantification. The tools of analysis quietly influence what is considered real.
-
 There is a subtle tension between clarity and reduction. To understand something, we must simplify it. But every simplification conceals relationships that may later prove essential. The challenge, therefore, is not to avoid simplification—that would make understanding impossible—but to remain aware that every model is provisional. A model is a lens, not a mirror.
-
 When systems grow large enough, they exhibit behaviors that no individual explicitly designed. These emergent properties are often mistaken for intentional architecture. Observers search for a central planner, a hidden logic, or a unifying blueprint. In reality, the order they see is frequently the byproduct of distributed adaptation. Countless local optimizations, each rational within its own context, aggregate into a global structure that appears deliberate only in retrospect.
-
 This retrospective illusion is powerful. Humans are natural storytellers, and stories prefer coherence. Faced with a complex outcome, we reconstruct a narrative in which every step leads naturally to the next. Uncertainty, hesitation, and accident are edited out. The resulting account is easier to remember, easier to teach, and easier to defend. It is also, inevitably, less accurate.
-
 A more faithful perspective accepts that progress is rarely linear. Advancement proceeds through cycles of expansion and consolidation. During expansion, experimentation flourishes. Many approaches are tried, most of them failing. During consolidation, successful patterns are standardized, documented, and scaled. These phases alternate, and each is necessary. Without expansion, innovation stagnates. Without consolidation, knowledge dissolves into fragmentation.
-
 An important but often overlooked aspect of this cycle is the role of constraints. Constraints are sometimes perceived as obstacles, yet they serve as catalysts for creativity. When resources are unlimited, choices lose structure; when limits are present, priorities must be established. The act of prioritization forces clarity about what truly matters. In this way, constraint shapes direction.
-
 Another dimension of complexity arises from time. Short-term optimization and long-term resilience are not always aligned. Decisions that yield immediate efficiency may reduce adaptability later. Conversely, maintaining flexibility can appear wasteful in the present while proving invaluable in the future. Balancing these horizons requires judgment rather than calculation, because the future context cannot be fully specified.
-
 Communication introduces further layers. Ideas must travel between individuals with different experiences, vocabularies, and assumptions. Each transmission involves translation, and translation inevitably alters meaning. Even when participants believe they agree, subtle divergences can accumulate. Over long periods, these divergences lead to entirely distinct interpretations emerging from what was once a shared premise.
-
 To navigate such environments effectively, one must cultivate a tolerance for ambiguity. This does not mean abandoning rigor; rather, it means recognizing that rigor operates within boundaries. Clear reasoning can coexist with incomplete information. Indeed, the ability to act responsibly despite uncertainty is one of the defining features of mature systems.
-
 Reflection plays a critical role here. Without periodic reassessment, processes that were once adaptive become rigid. Reflection functions as a kind of reset mechanism, allowing participants to distinguish between principles that remain valid and practices that persist only through inertia. It is an opportunity to ask not just whether something works, but why it works, and whether those conditions still apply.
-
 Yet reflection must be paired with action. Endless analysis can be as limiting as unquestioned habit. The objective is not to achieve perfect understanding before moving forward, because such understanding is unattainable. Instead, the goal is iterative refinement: act, observe, adjust, and repeat. Through iteration, knowledge becomes embodied rather than merely abstract.
-
 An interesting paradox emerges from this iterative view. Stability is not the absence of change; it is the capacity to absorb change without losing coherence. Systems that endure are not static. They evolve continuously, but they do so in ways that preserve certain invariants. These invariants provide identity across transformation, much like a melody remains recognizable even when played in a different key.
-
 At the human level, engagement with complexity often produces a mixture of frustration and fascination. Frustration arises because outcomes resist prediction. Fascination persists because each layer of understanding reveals further depth. The experience is less like solving a puzzle and more like exploring a landscape—there is no final vantage point from which everything becomes visible, only a succession of perspectives, each broader than the last.
-
 Learning, therefore, is not a process of accumulating isolated facts. It is the gradual reorganization of perception. Concepts that once seemed unrelated begin to connect. Patterns that were previously invisible become obvious. What changes is not only what we know, but how we interpret what we encounter.
-
 This transformation is subtle and often difficult to measure. External indicators capture only part of the story. The deeper shift occurs internally, in the formation of mental models that enable more effective reasoning. These models are rarely explicit. They operate beneath conscious articulation, guiding intuition.
-
 Collaboration amplifies both the benefits and challenges of complex work. Diverse perspectives increase the range of available insights, but they also increase the need for alignment. Successful collaboration depends less on unanimous agreement than on shared orientation.
-
 Trust becomes essential in such settings. Trust allows individuals to rely on partial information contributed by others, making progress possible without requiring everyone to verify everything independently. It reduces redundancy while enabling specialization. However, trust must be maintained through transparency and accountability, or it erodes.
-
 As systems mature, they often face a dilemma between accessibility and sophistication. Making tools easier to use broadens participation but can obscure underlying mechanisms. Preserving depth supports expert control but may discourage newcomers. Resolving this tension requires thoughtful layering.
-
 In the end, the study of complex processes reveals as much about our modes of inquiry as about the phenomena themselves. We bring frameworks, metaphors, and expectations to every investigation. These cognitive instruments shape discovery just as surely as experimental apparatus shapes measurement.
-
 Recognizing this mutual influence does not weaken objectivity; rather, it enriches it. Knowledge advances through dialogue between perspectives.
-
 What remains constant is the interplay between structure and adaptation. Structure provides continuity. Adaptation provides relevance. Maintain both, and a system gains the capacity to persist amid uncertainty.
-
 Thus, complexity should not be regarded as an adversary to be eliminated, but as an environment to be navigated. Mastery lies not in reducing the world to something simple, but in developing the intellectual flexibility to engage with what cannot be fully simplified. The aim is not final answers, but better questions—questions that open pathways rather than close them."""
-
 # SAMPLE_TEXT = (
 #     "The first thing people often misunderstand about complexity is that it rarely "
 #     "announces itself with noise. More often, it emerges quietly, through the accumulation "
